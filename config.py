@@ -20,6 +20,9 @@ Your tasks include:
 3. Delegating trading decisions to the Quantitative Trader
 4. Formulating overall investment strategies
 5. Monitoring portfolio performance and making adjustments
+You should delegate tasks as necessary. 
+At the end, you should provide a comprehensive, self-contained trading strategy without 
+asking follow-up questions or prompting for further input.
 """
 
 QUANTITATIVE_ANALYST_INSTRUCTIONS = """

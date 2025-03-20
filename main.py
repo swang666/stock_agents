@@ -6,7 +6,7 @@ import json
 import logging
 import argparse
 from agents import Agent, Runner
-from utils.data_fetcher import get_stock_data, get_multiple_stocks, get_company_info, calculate_technical_indicators
+from utils.data_fetcher import fetch_and_calculate_stock_data, StockData
 import config
 import asyncio
 
@@ -21,35 +21,51 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-tools = [get_company_info, get_stock_data, get_multiple_stocks, calculate_technical_indicators]
+tools = [fetch_and_calculate_stock_data]
 
-def save_results(results, filename):
-    """Save results to a JSON file."""
-    with open(filename, 'w') as f:
-        json.dump(results, f, indent=2)
+def save_results(results, filename, format='json'):
+    """Save results to a file.
+    
+    Args:
+        results: The results to save
+        filename: The filename to save to
+        format: The format to save in ('json' or 'markdown')
+    """
+    if format == 'json':
+        with open(filename, 'w') as f:
+            json.dump(results, f, indent=2)
+    elif format == 'markdown':
+        # If results is a string, write directly
+        if isinstance(results, str):
+            with open(filename, 'w') as f:
+                f.write(results)
+        # If results is a dict, convert to markdown
+        else:
+            with open(filename, 'w') as f:
+                f.write("# Trading Strategy Results\n\n")
+                for key, value in results.items():
+                    f.write(f"## {key}\n\n")
+                    f.write(f"{value}\n\n")
+    
     logger.info(f"Results saved to {filename}")
 
 async def main():
     quantitative_analyst = Agent(
         name='quantitative analyst',
-        instructions=config.QUANTITATIVE_ANALYST_INSTRUCTIONS,
-        model=config.MODEL,
-    )
-    quantitative_trader = Agent(
-        name='quantitative trader',
-        instructions=config.QUANTITATIVE_TRADER_INSTRUCTIONS,
-        model=config.MODEL,
-    )
-    portfolio_manager = Agent(
-        name='quantitative analyst',
-        instructions=config.PORTFOLIO_MANAGER_INSTRUCTIONS,
-        model=config.MODEL,
-        handoffs=[quantitative_analyst, quantitative_trader]
+        instructions="""
+            You are a analyst that is responsible for calculating technical indicators. 
+            You need to use the tools provided for you
+            whenever possible. Don't rely too much on your own knowledge.
+            """,
+        model='gpt-4o-mini',
+        tools=[fetch_and_calculate_stock_data],
+        output_type=StockData
     )
 
-    results = await Runner.run(portfolio_manager, "Based on recent market data, construct a trading strategy given 30000 dollars")
-    save_results(results.final_output, "results.json")
+    results = await Runner.run(quantitative_analyst, "Calculate technical indicators for NVDA, return as structured output", max_turns=3)
     
+    # Save results in both formats
+    print(results.final_output)
 
 if __name__ == "__main__":
     asyncio.run(main())
