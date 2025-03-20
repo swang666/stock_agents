@@ -6,7 +6,7 @@ import json
 import logging
 import argparse
 from agents import Agent, Runner
-from utils.data_fetcher import fetch_and_calculate_stock_data, StockData
+from utils.data_fetcher import fetch_and_calculate_stock_data, StockData, StockSignals
 import config
 import asyncio
 
@@ -53,16 +53,18 @@ async def main():
     quantitative_analyst = Agent(
         name='quantitative analyst',
         instructions="""
-            You are a analyst that is responsible for calculating technical indicators. 
-            You need to use the tools provided for you
-            whenever possible. Don't rely too much on your own knowledge.
+            You are a analyst that is responsible for making stock trading decisions based on indicators. 
+            You need to use the tools provided for you whenever possible. Don't rely too much on your own knowledge.
+            Here are your tasks:
+                1. Calculate the technical indicators for the given stocks
+                2. Use the output to make a trading decision for each stock, also provide reasons
             """,
         model='gpt-4o-mini',
         tools=[fetch_and_calculate_stock_data],
-        output_type=StockData
+        output_type=StockSignals
     )
 
-    results = await Runner.run(quantitative_analyst, "Calculate technical indicators for NVDA, return as structured output", max_turns=3)
+    results = await Runner.run(quantitative_analyst, "Make trading decisions for NVDA and TSLA")
     
     # Save results in both formats
     print(results.final_output)
