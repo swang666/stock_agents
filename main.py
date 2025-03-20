@@ -52,17 +52,25 @@ def save_results(results, filename, format='json'):
 
 async def main():
 
+    portfolio_manager = Agent(
+        name='portfolio manager',
+        instructions="""
+            You are a portfolio manager, you will construct a portfolio with a given initial amount,
+            based on the picked stocks and the analysis from the trader and quantitative analyst
+        """,
+        model='gpt-4o-mini'
+    )
+
     trader = Agent(
         name='trader',
         instructions="""
-            You are a trader that is responsible for making stock trading decisions based on indicators. 
-            You will be given a list of StockData from the analyst, you need to look at all the indicators
+            You are a trader that is responsible for deciding what should be the buy sell prices for the stock
+            based on indicators. You will be given StockData from the analyst, you need to look at all the indicators
             and write a summary for each indicator, and then combine all the indicators together
             to make a final decision. Your reasoning should contain the actual number to back up you claim.
-            The indicators are sorted in ascending order by date, the last index will be current date
             """,
         model='gpt-4o-mini',
-        output_type=StockSignals
+        handoffs=[portfolio_manager]
     )
 
     quantitative_analyst = Agent(
@@ -76,11 +84,11 @@ async def main():
             """,
         model='gpt-4o-mini',
         tools=[fetch_and_calculate_stock_data],
-        output_type=List[StockData],
-        handoffs=[trader]
+        output_type=StockData,
+        handoffs=[trader],
     )
 
-    results = await Runner.run(quantitative_analyst, "Make trading decisions for NVDA and TSLA")
+    results = await Runner.run(quantitative_analyst, "Construct a portfolio with 30000$ initial amount on NVDA, TSLA, and PLTR")
     
     # Save results in both formats
     print(results.final_output)
